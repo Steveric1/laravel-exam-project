@@ -1,0 +1,60 @@
+---
+- name: Install and create mysql database
+  hosts: webservers
+  become: yes
+  vars:
+    passwd: Stepheneric@123
+    data_base: Steveric
+    username: Ericsteve
+    root_passwd: Stepheneric@123
+  tasks:
+     - name: update the client machine
+       command: apt update
+     - name: install mysql server 
+       ansible.builtin.package:
+         name:
+            - mysql-server
+            - mysql-client
+            - python3-mysqldb 
+            - libmysqlclient-dev 
+         state: latest
+         update_cache: yes
+     - name: start and enable mysql 
+       service:
+            name: mysql
+            state: started
+     - name: Update mysql root password for all root account
+       mysql_user:
+         name: root
+         host: "{{ item }}"
+         password: "{{ root_passwd }}"
+         login_user: root
+         login_password: "{{ root_passwd }}"
+         check_implicit_admin: yes
+         priv: "*.*:ALL,GRANT"
+       with_items:
+       - "{{ ansible_hostname }}"
+       - 127.0.0.1
+       - ::1
+       - localhost   
+     - name: create mysql database 
+       mysql_db:
+         login_user: root
+         login_password: "{{ root_passwd }}"
+         name: "{{ data_base }}"
+         state: present
+
+     - name: create mysql user and set passwd and privileges
+       mysql_user:
+          login_user: root
+          login_password: "{{ root_passwd }}"  
+          name: "{{ username }}"
+          password: "{{ passwd }}"
+          priv: "{{ data_base }}.*:ALL"
+          host: localhost
+          state: present
+     - name: restart mysql database
+       service: 
+          name: mysql
+          state: restarted 
+

@@ -1,0 +1,49 @@
+---
+- name: Install and configure apache2 to the client node
+  hosts: webservers
+  become: yes
+  vars:
+     http_port: 80
+     domain: 35.175.243.123
+     ServerAdmin: contact@steveric.me
+     domain_name: Steveric
+  
+  tasks:
+   - name: Install apache2 to the client node
+     ansible.builtin.package:
+       name: apache2
+       update_cache: yes
+       state: latest
+   - name: Start apache2
+     service:
+          name: apache2
+          state: started
+   - name: Add firewalld Rules
+     firewalld:
+            port: 80/tcp
+            permanent: true
+            state: enabled
+   - name: Reload firewalld servie
+     systemd:
+          name: firewalld
+          state: reloaded
+   - name: Copy the content in /home/node1 Steveric.conf to apache2 config file
+     template:
+          src: /home/node1/Steveric.conf
+          dest: /etc/apache2/sites-available/{{ domain_name }}.conf
+   - name: Enable mode rewrite and ensite it
+     apache2_module:
+         name: rewrite
+         state: present
+   - name: restart apache2 to enable mode rewrite
+     service:
+         name: apache2
+         state: restarted
+   - name: a2ensite {{ domain_name }}
+     command: a2ensite {{ domain_name }}.conf
+   - name: a2dissite the apache default
+     command: a2dissite 000-default.conf
+   - name: restart apache2
+     service:
+         name: apache2
+         state: restarted

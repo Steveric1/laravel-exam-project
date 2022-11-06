@@ -1,0 +1,25 @@
+---
+- name: Securing mysql installation on the client node
+  hosts: webservers
+  become: yes
+  vars:
+    root_passwd: Stepheneric@123
+  tasks: 
+    #- name: sets the root password
+       #mysql_user:
+         #login_user: root
+         #login_password: "{{ root_passwd }}"
+     - name: Removes all anonymous user accounts
+       mysql_user:
+         name: ''
+         host_all: yes
+         state: absent
+         login_user: root
+         login_password: "{{ root_passwd }}"
+     - name: Remove the test database and access it 
+       mysql_db:
+         name: test
+         state: absent
+         login_user: root 
+         login_password: "{{ root_passwd }}"
+

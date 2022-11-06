@@ -1,0 +1,116 @@
+---
+- name: Install laravel and it's dependencies to the client node
+  hosts: webservers
+  become: yes
+  vars:
+    domain: http://35.175.243.123
+    data_connection: mysql
+    host: localhost
+    data_base: Steveric
+    db_user: Ericsteve
+    db_passwd: Stepheneric@123
+    host_name: Steveric
+  tasks:
+     - name: Install the following packages to the client node
+       ansible.builtin.package:
+          name: 
+            - git
+            - curl
+            - wget 
+            - unzip
+            - php-curl
+            - php-xml
+            - php8.1-mysql
+          update_cache: yes
+          state: latest
+     - name: Download composer installer
+       ansible.builtin.get_url:
+           url: https://getcomposer.org/installer
+           dest: /usr/src/
+     - name: Download and install composer
+       shell: curl -sS https://getcomposer.org/installer | php
+       args:
+         chdir: /usr/src/
+         creates: /usr/local/bin/composer
+         warn: false
+     - name: Add composer to global path
+       copy:
+         dest: /usr/local/bin/composer
+         group: root
+         mode: '0755'
+         owner: root
+         src: /usr/src/composer.phar
+         remote_src: yes
+     - name: Make a directory in /var/www path
+       ansible.builtin.file:
+          path: /var/www/Steveric
+          state: directory
+          mode: '0775'
+     - name: Clone laravel app to client node
+       git:
+        repo:  https://github.com/f1amy/laravel-realworld-example-app.git
+        dest:  /var/www/Steveric 
+     - name: Change ownership permission
+       ansible.builtin.file:
+         path: /var/www/Steveric
+         state: directory
+         recurse: yes
+         owner: www-data 
+         group: www-data
+     - name: Set permission for the user
+       ansible.builtin.file:
+         path: /var/www/Steveric
+         state: directory
+         recurse: yes
+         mode: '0775'
+     - name: Set permission for storage
+       ansible.builtin.file:
+         path: /var/www/Steveric/storage
+         state: directory
+         recurse: yes
+         mode: '0775'
+     - name: Set permission for bootstrap
+       ansible.builtin.file:
+         path: /var/www/Steveric/bootstrap/cache
+         state: directory
+         recurse: yes
+         mode: '0775'
+     - name: Copy env file
+       template:
+         src: /home/node1/.env
+         dest: /var/www/Steveric
+         mode: '0755' 
+     - name: Remove the web.php inside routes dir
+       shell: sudo rm -rf /var/www/Steveric/routes/web.php
+     - name: Copy web.php to routes dir
+       template:
+          src: /home/node1/web.php
+          dest: /var/www/Steveric/routes/ 
+     - name: Install laravel dependencies with composer install
+       become: false
+       community.general.composer:
+         command: update
+         global_command: false
+         working_dir: /var/www/Steveric
+     - name: Update the laravel project using composer update module
+       become: false
+       community.general.composer:
+         command: install
+         working_dir: /var/www/Steveric/
+         global_command: false 
+     - name: Generate the project key in case
+       ansible.builtin.shell: |
+         cd /var/www/Steveric/
+         php artisan key:generate
+     - name: clear the config cache
+       ansible.builtin.shell: |
+         cd /var/www/Steveric
+         sudo php artisan config:cache
+     - name: Fresh the migration table 
+       ansible.builtin.shell: |
+         cd /var/www/Steveric
+         sudo php artisan migrate:refresh    
+     - name: Migrate the database
+       ansible.builtin.shell: |
+         cd /var/www/Steveric/
+         sudo php /var/www/Steveric/ artisan migrate 

@@ -1,0 +1,17 @@
+---
+- name: Installing php and all it's dependencies
+  hosts: webservers
+  become: yes
+  tasks:
+     - name: add repositories
+       apt_repository:
+          repo: 'ppa:ondrej/php'
+          state: present
+     - name: update the client machine
+       command: apt update
+     - name: install php8.1 to the client node
+       ansible.builtin.package:
+         name: 'php8.1'
+         state: latest
+
+
